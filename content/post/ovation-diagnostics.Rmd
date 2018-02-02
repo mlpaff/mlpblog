@@ -1,0 +1,131 @@
+---
+title: Ovation Diagnostics
+author: Matthew Paff
+date: '2018-01-31'
+slug: ovation-diagnostics
+categories:
+  - R
+tags:
+  - regression
+  - plot
+#blogdown::serve_site() to start local server
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(cowplot)
+library(shiny)
+library(knitr)
+library(plotly)
+
+ml_data = read.csv('../../../ml_data.csv')
+df_raw <- read.csv('../../../admin_analytics_reports_011118.csv')
+roc1 <- read.csv('../../../roc1.csv')
+roc2 <- read.csv('../../../roc2.csv')
+
+#This spring I participated in the Insight Health Data Science Fellowship, working as a consultant for Ovation; a data management and solutions company that provides services for specialty diagnostic clinics. In addition to providing data management solutions, Ovation is working to provide data driven analytics and solutions to enhance patient care at the clinical level. Over the past few weeks, I have been collaborating with Barry Wark, CEO and Co-founder of Ovation, to see if we could leverage their clinic data to address a particularly important public health issue: the opioid epidemic.
+```
+# Diagnosing opioid abuse using genotype and clinic location.
+
+*Matthew Paff recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molecular Biology*
+
+
+# Background
+
+Opioid abuse is a serious public health crisis that has reached epidemic proportions over the past few years (figure 1). In 2016, there were over 42,249 [opioid-related deaths](https://www.cdc.gov/drugoverdose/data/statedeaths.html) in the United States, more than the number of Americans that die from breast cancer every year. It is currently the leading cause of injury death in the United States.
+
+```{r heatMap, out.width = "100%", echo=FALSE, fig.cap="**Overdose deaths per 100,000 people (1999-2014)**. Haeyoun Park and Matthew Bloch - [The New York Times](https://nyti.ms/2jVUlKb)"}
+include_graphics("https://static01.nyt.com/images/2017/10/26/us/drug-deaths-promo-guide/drug-deaths-promo-guide-superJumbo.jpg?quality=100&auto=webp")
+```
+
+Identifying patients who currently have, or are at risk of developing opioid habits early on may be a crucial step in slowing this epidemic
+
+Historically, physicians have relied primarily on subjective clinical risk factors such as family history, medical history, and various social and environmental factors, but there is increasing interest in utilizing [genetic screening](https://www.sciencedaily.com/releases/2017/12/171213130411.htm) to identify at-risk patients. 
+
+
+# The Data
+
+Ovation provided me with a dataset with information from nearly 4000 patients. Data included information on the clinic where the patients were treated, their diagnosis in the form of an ICD-10 code (International Statistical Classification of Diseases and Related Health Problems), and the results from genetic testing, identified as SNPs (single nucleotide polymorphisms), or genetic mutations. 
+
+This data had information from over 1850 different diagnoses and 485 gene loci. Now this dataset was wonderfully complex and required extensive manipulation before analysis could be performed. The first step however, was rather straightforward however. For the goals of this analysis, I was only interested (at least initially) in the ICD-10 codes related to opioid addiction and abuse. As a result, I was able to reduce the ~1850 diagnosis features (of which only 8 were related to opioid abuse) to a single binary column in which each patient was diagnosed as positive for opioid abuse or not (figure 1A). 
+
+
+
+
+```{r opProp, fig.cap = "**A.** Number of negative and positive opioid abuse diagnoses. **B.** Proportion of patients with a positive opioid abuse diagnosis for a given clinic compared to the total number of patients. Only clinics with at least 1 opioid patient are included (114 clinics have 0 patients diagnosed with opioid abuse).", fig.width=9, fig.height=5, echo=FALSE, message=FALSE}
+ml_data$opioid_abuse <- factor(ml_data$opioid_abuse, levels=c(0,1))
+clinic_labs <- c(
+  'Louisville Behavioral Health Systems' = 'Clinic 1',
+  'Luminus Diagnostics' = 'Clinic 2',
+  'MAT of Georgia' = 'Clinic 3', 
+  'Park Road Medical' = 'Clinic 4',
+  'Pathway Outpatient Services, LLC' = 'Clinic 5',
+  'Reliance Laboratory Testing' = 'Clinic 6',
+  'Total Health Primary Care' = 'Clinic 7'
+)
+
+opioid_counts_plot <- ml_data %>% select(clinic, opioid_abuse) %>%
+  ggplot(aes(x=opioid_abuse, fill = opioid_abuse)) + 
+  geom_bar(stat='count') +
+  #stat_count(aes(label=..count..), geom="text", vjust=-0.5, size=8) + 
+  scale_x_discrete(labels = c('Negative', 'Positive')) + 
+  scale_y_continuous(expand=c(0,0), limits = c(0, 3500)) + 
+  scale_fill_manual(values = c('#56B4E9', '#D55E00')) +
+  labs(x='Opioid abuse diagnosis', y= 'Number of patients') + 
+  theme(legend.position = 'none',
+        axis.text.y = element_text(size = 16),
+        axis.title = element_text(size = 22),
+        axis.text.x = element_text(angle = 60, hjust = 1, size=16))
+
+p1 <- ggplotly(opioid_counts_plot, tooltip = "y") %>% layout(margin = list(l = 110, b=150))
+
+ratio <- ml_data %>% select(clinic, opioid_abuse) %>% group_by(clinic) %>% filter(n() > 10) %>%
+  select(clinic, opioid_abuse) %>%
+  count(opioid_abuse) %>% mutate(ratio = n/sum(n)) %>% filter(opioid_abuse==1) %>%
+  ggplot(aes(y=ratio, x=clinic)) +
+  geom_bar(fill='#D55E00', stat='identity') +
+  labs(y='Percent of patients with \nopioid abuse diagnosis', x='Clinic') +
+  scale_x_discrete(labels = clinic_labs) +
+  scale_y_continuous(expand=c(0,0), limits = c(0,1)) +
+  theme(legend.position = 'none',
+    axis.title = element_text(size = 22),
+    axis.text.y = element_text(size=16),
+    axis.text.x = element_text(angle = 60, hjust = 1, size=16))
+
+p2 <- ggplotly(ratio, tooltip = "y") %>% layout(margin=list(l = 110, b=150))
+
+subplot(p1, p2, margin = 0.1, titleX = TRUE, titleY = TRUE)
+```
+
+```{r ROC, echo=FALSE}
+x1 <- data.frame(fpr = roc1$gene_lr_fpr, tpr = roc1$gene_lr_tpr) %>% mutate(label='roc1')
+x2 <- data.frame(fpr = roc2$cg_fpr, tpr = roc2$cg_tpr) %>% mutate(label='roc2')
+#x3 <- data.frame(fpr = roc3$fpr_m3, tpr = roc3$tpr_m3) %>% mutate(label='roc3')
+
+test <- rbind(x1, x2)
+test$label <- factor(test$label, levels = c('roc1', 'roc2'))
+
+roc_labs = c(
+  'roc1' = 'genotype = 0.814',
+  'roc2' = 'genotype + clinic = 0.952'
+  #'roc2' = 'genotype + clinic = 0.971'
+)
+
+roc_plot <- test %>% group_by(label) %>% 
+  ggplot(aes(x=fpr, y=tpr, color = label)) + 
+  geom_line(size=1.2) + 
+  scale_color_manual(values=c('#E69F00', "#56B4E9"), 
+                     labels = roc_labs) + 
+  geom_abline(linetype=2) +
+  scale_x_continuous(expand=c(0,0), limits=c(0,1.03)) + 
+  scale_y_continuous(expand=c(0,0), limits=c(0,1.03)) + 
+  labs(x="False positive rate", y = "True positive rate", color = 'AUC') +
+  theme(legend.position = c(.45, .1), 
+        legend.text = element_text(size=15),
+        axis.title = element_text(size=20))
+```
+
+
+
+
