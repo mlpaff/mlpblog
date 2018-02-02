@@ -1,35 +1,43 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on MLPaff</title>
+    <title>Posts on Matthew Paff</title>
     <link>/post/</link>
-    <description>Recent content in Posts on MLPaff</description>
+    <description>Recent content in Posts on Matthew Paff</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 31 Jan 2018 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Fri, 02 Feb 2018 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Ovation Diagnostics</title>
-      <link>/2018/01/31/ovation-diagnostics/</link>
-      <pubDate>Wed, 31 Jan 2018 00:00:00 +0000</pubDate>
+      <link>/2018/02/ovation-diagnostics/</link>
+      <pubDate>Fri, 02 Feb 2018 00:00:00 +0000</pubDate>
       
-      <guid>/2018/01/31/ovation-diagnostics/</guid>
-      <description>Diagnosing opioid abuse using genotype and clinic location. Matthew Paff recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molecular Biology
+      <guid>/2018/02/ovation-diagnostics/</guid>
+      <description>Diagnosing opioid abuse using patient genotype and clinic information.  Matthew Paff recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molecular Biology
  Background Opioid abuse is a serious public health crisis that has reached epidemic proportions over the past few years (figure 1). In 2016, there were over 42,249 opioid-related deaths in the United States, more than the number of Americans that die from breast cancer every year.</description>
     </item>
     
     <item>
-      <title>Hello R Markdown</title>
-      <link>/2015/07/23/hello-r-markdown/</link>
-      <pubDate>Thu, 23 Jul 2015 21:13:14 -0500</pubDate>
+      <title>Welcome to Tranquilpeak 0.4.3-BETA</title>
+      <link>/2015/06/welcome-to-tranquilpeak-0.4.3-beta/</link>
+      <pubDate>Mon, 15 Jun 2015 00:00:00 +0000</pubDate>
       
-      <guid>/2015/07/23/hello-r-markdown/</guid>
-      <description>R Markdown This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see http://rmarkdown.rstudio.com.
-You can embed an R code chunk like this:
-summary(cars) ## speed dist ## Min. : 4.0 Min. : 2.00 ## 1st Qu.:12.0 1st Qu.: 26.00 ## Median :15.0 Median : 36.00 ## Mean :15.4 Mean : 42.98 ## 3rd Qu.</description>
+      <guid>/2015/06/welcome-to-tranquilpeak-0.4.3-beta/</guid>
+      <description>&lt;p&gt;Tranquilpeak is a gorgeous responsive theme for Hugo blog framework. It has many features and integrated services to improve user experience.
+&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Cover image showcase</title>
+      <link>/2015/05/cover-image-showcase/</link>
+      <pubDate>Wed, 13 May 2015 00:00:00 +0000</pubDate>
+      
+      <guid>/2015/05/cover-image-showcase/</guid>
+      <description>&lt;p&gt;Tranquilpeak integrate a unique &amp;ldquo;cover image&amp;rdquo; feature. Open this post to see how this feature sublimate your article.&lt;/p&gt;</description>
     </item>
     
   </channel>

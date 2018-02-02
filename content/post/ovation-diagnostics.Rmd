@@ -1,20 +1,19 @@
 ---
 title: Ovation Diagnostics
-author: Matthew Paff
-date: '2018-01-31'
+author: 'Matthew Paff'
+date: '2018-02-02'
 slug: ovation-diagnostics
-categories:
-  - R
-tags:
-  - regression
-  - plot
-#blogdown::serve_site() to start local server
+coverImage: ../imgs/UT.jpg
+thumbnailImagePosition: right
+summary: "My Insight Data Science consulting project, identifying patients at risk for opioid abuse"
+categories: ['Health Data Science']
+tags: []
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(cowplot)
+library(cowplot) 
 library(shiny)
 library(knitr)
 library(plotly)
@@ -24,9 +23,10 @@ df_raw <- read.csv('../../../admin_analytics_reports_011118.csv')
 roc1 <- read.csv('../../../roc1.csv')
 roc2 <- read.csv('../../../roc2.csv')
 
-#This spring I participated in the Insight Health Data Science Fellowship, working as a consultant for Ovation; a data management and solutions company that provides services for specialty diagnostic clinics. In addition to providing data management solutions, Ovation is working to provide data driven analytics and solutions to enhance patient care at the clinical level. Over the past few weeks, I have been collaborating with Barry Wark, CEO and Co-founder of Ovation, to see if we could leverage their clinic data to address a particularly important public health issue: the opioid epidemic.
+#This spring I participated in the Insight Health Data Science Fellowship, working as a consultant for [Ovation](https://www.ovation.io/); a data management and solutions company that provides services for specialty diagnostic clinics. In addition to providing data management solutions, Ovation is working to provide data driven analytics and solutions to enhance patient care at the clinical level. Over the past few weeks, I have been collaborating with Barry Wark, CEO and Co-founder of Ovation, to see if we could leverage their clinic data to address a particularly important public health issue: the opioid epidemic.
 ```
-# Diagnosing opioid abuse using genotype and clinic location.
+# Diagnosing opioid abuse using patient genotype and clinic information.
+<!--more-->
 
 *Matthew Paff recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molecular Biology*
 
@@ -53,7 +53,7 @@ This data had information from over 1850 different diagnoses and 485 gene loci. 
 
 
 
-```{r opProp, fig.cap = "**A.** Number of negative and positive opioid abuse diagnoses. **B.** Proportion of patients with a positive opioid abuse diagnosis for a given clinic compared to the total number of patients. Only clinics with at least 1 opioid patient are included (114 clinics have 0 patients diagnosed with opioid abuse).", fig.width=9, fig.height=5, echo=FALSE, message=FALSE}
+```{r opProp, fig.cap = "**A.** Number of negative and positive opioid abuse diagnoses. **B.** Proportion of patients with a positive opioid abuse diagnosis for a given clinic compared to the total number of patients. Only clinics with at least 1 opioid patient are included (114 clinics have 0 patients diagnosed with opioid abuse).", echo=FALSE, message=FALSE}
 ml_data$opioid_abuse <- factor(ml_data$opioid_abuse, levels=c(0,1))
 clinic_labs <- c(
   'Louisville Behavioral Health Systems' = 'Clinic 1',
@@ -74,9 +74,9 @@ opioid_counts_plot <- ml_data %>% select(clinic, opioid_abuse) %>%
   scale_fill_manual(values = c('#56B4E9', '#D55E00')) +
   labs(x='Opioid abuse diagnosis', y= 'Number of patients') + 
   theme(legend.position = 'none',
-        axis.text.y = element_text(size = 16),
-        axis.title = element_text(size = 22),
-        axis.text.x = element_text(angle = 60, hjust = 1, size=16))
+    axis.title = element_text(size = 18),
+    axis.text.y = element_text(size=14),
+    axis.text.x = element_text(angle = 60, hjust = 1, size=14))
 
 p1 <- ggplotly(opioid_counts_plot, tooltip = "y") %>% layout(margin = list(l = 110, b=150))
 
@@ -85,13 +85,13 @@ ratio <- ml_data %>% select(clinic, opioid_abuse) %>% group_by(clinic) %>% filte
   count(opioid_abuse) %>% mutate(ratio = n/sum(n)) %>% filter(opioid_abuse==1) %>%
   ggplot(aes(y=ratio, x=clinic)) +
   geom_bar(fill='#D55E00', stat='identity') +
-  labs(y='Percent of patients with \nopioid abuse diagnosis', x='Clinic') +
+  labs(y='% Positive opioid patients', x='Clinic') +
   scale_x_discrete(labels = clinic_labs) +
   scale_y_continuous(expand=c(0,0), limits = c(0,1)) +
   theme(legend.position = 'none',
-    axis.title = element_text(size = 22),
-    axis.text.y = element_text(size=16),
-    axis.text.x = element_text(angle = 60, hjust = 1, size=16))
+    axis.title = element_text(size = 18),
+    axis.text.y = element_text(size=14),
+    axis.text.x = element_text(angle = 60, hjust = 1, size=14))
 
 p2 <- ggplotly(ratio, tooltip = "y") %>% layout(margin=list(l = 110, b=150))
 
@@ -125,6 +125,7 @@ roc_plot <- test %>% group_by(label) %>%
         legend.text = element_text(size=15),
         axis.title = element_text(size=20))
 ```
+
 
 
 
