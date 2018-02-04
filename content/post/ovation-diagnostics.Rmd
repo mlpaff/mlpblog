@@ -5,7 +5,7 @@ date: '2018-02-02'
 slug: ovation-diagnostics
 coverImage: ../imgs/UT.jpg
 thumbnailImagePosition: right
-summary: "My Insight Data Science consulting project, identifying patients at risk for opioid abuse"
+summary: "My Insight Health Data Science consulting project, identifying patients at risk for opioid dependence"
 categories: ['Health Data Science']
 tags: []
 ---
@@ -25,35 +25,71 @@ roc2 <- read.csv('../../../roc2.csv')
 
 #This spring I participated in the Insight Health Data Science Fellowship, working as a consultant for [Ovation](https://www.ovation.io/); a data management and solutions company that provides services for specialty diagnostic clinics. In addition to providing data management solutions, Ovation is working to provide data driven analytics and solutions to enhance patient care at the clinical level. Over the past few weeks, I have been collaborating with Barry Wark, CEO and Co-founder of Ovation, to see if we could leverage their clinic data to address a particularly important public health issue: the opioid epidemic.
 ```
-# Diagnosing opioid abuse using patient genotype and clinic information.
-<!--more-->
+# Identifying patients at risk for opioid dependence
 
-*Matthew Paff recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molecular Biology*
+*Matthew Paff, an Insight Health Data Science fellow (Spring, 2018), recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molexcular Biology. There he modeled population dynamics of transmissible anti-viral defense using bacteriophage (viruses that infect bacteria) and developed novel approaches for genetically engineering attenuated vaccines.*
 
+This spring I participated in the Insight Health Data Science fellowship program, working as a consultant for a company that provides data management solutions to specialty diagnostic clinics. Recently, they have been interested in expanding their role to include data-driven analytics to enhance the quality of patient care for their clients. Over the past few weeks, I have been working with this company to leverage their clinical data to address a particularly important public health issue: the opioid epidemic.
 
 # Background
 
-Opioid abuse is a serious public health crisis that has reached epidemic proportions over the past few years (figure 1). In 2016, there were over 42,249 [opioid-related deaths](https://www.cdc.gov/drugoverdose/data/statedeaths.html) in the United States, more than the number of Americans that die from breast cancer every year. It is currently the leading cause of injury death in the United States.
+Opioid abuse is a serious public health crisis that has reached epidemic proportions over the past few years (figure 1). In 2016, there were over 42,249 [opioid-related deaths](https://www.cdc.gov/drugoverdose/data/statedeaths.html) in the United States. This is more than the number of Americans that die from breast cancer every year. It is currently the leading cause of injury death in the United States. Overprescription of pain medication is a significant contributor to this problem. In 2015, there were over 300 million opioid prescriptions written in the US, with [Americans consuming over 80%](https://www.cnbc.com/2016/04/27/americans-consume-almost-all-of-the-global-opioid-supply.html) of the global opioid supply. 
 
 ```{r heatMap, out.width = "100%", echo=FALSE, fig.cap="**Overdose deaths per 100,000 people (1999-2014)**. Haeyoun Park and Matthew Bloch - [The New York Times](https://nyti.ms/2jVUlKb)"}
 include_graphics("https://static01.nyt.com/images/2017/10/26/us/drug-deaths-promo-guide/drug-deaths-promo-guide-superJumbo.jpg?quality=100&auto=webp")
 ```
 
-Identifying patients who currently have, or are at risk of developing opioid habits early on may be a crucial step in slowing this epidemic
+Early identification of patients with opioid addiction or those who may be at increased risk of developing opioid abuse habits could be a crucial step in slowing this epidemic, at least when it comes to prescription pain medication. It is therefore important that we continue to develop novel approaches to identifying those that could be more susceptible to opioid addiction. Historically, physicians have relied primarily on subjective clinical risk factors such as family history, medical history, and various social and environmental factors, but there is increasing interest in utilizing [genetic screening](https://www.sciencedaily.com/releases/2017/12/171213130411.htm) to identify at-risk patients. 
 
-Historically, physicians have relied primarily on subjective clinical risk factors such as family history, medical history, and various social and environmental factors, but there is increasing interest in utilizing [genetic screening](https://www.sciencedaily.com/releases/2017/12/171213130411.htm) to identify at-risk patients. 
-
+The company that I consulted for was interested in asking whether they could take advantage of their clinical patient data to address this opioid dependence problem. More specifically, they wanted to measure the what contribution, if any, the clinic played in the identification of these patients. Here I used genetic sequencing data and information on the patients' clinics to train a machine-learning model in Python to identify patients diagnosed with opioid dependence. I was primarily interested in quantifying the role that the individual clinics play in making these predictions.
 
 # The Data
 
-Ovation provided me with a dataset with information from nearly 4000 patients. Data included information on the clinic where the patients were treated, their diagnosis in the form of an ICD-10 code (International Statistical Classification of Diseases and Related Health Problems), and the results from genetic testing, identified as SNPs (single nucleotide polymorphisms), or genetic mutations. 
+I was provided with a dataset with information from over 3000 patients, a small random subset from their database. Within this data, I worked with three primary classes of information:
 
-This data had information from over 1850 different diagnoses and 485 gene loci. Now this dataset was wonderfully complex and required extensive manipulation before analysis could be performed. The first step however, was rather straightforward however. For the goals of this analysis, I was only interested (at least initially) in the ICD-10 codes related to opioid addiction and abuse. As a result, I was able to reduce the ~1850 diagnosis features (of which only 8 were related to opioid abuse) to a single binary column in which each patient was diagnosed as positive for opioid abuse or not (figure 1A). 
+1. Patient diagnosis
+2. Genetic sequencing results
+3. Name of the clinic where each patient was treated
+
+Included within these categories was information from over 1850 different diagnoses in the form of ICD-10 codes (International Statistical Classification of Diseases and Related Health Problems), 485 genes, and 121 clinics. Now this dataset was wonderfully complex and required quite a bit of initial manipulation and transformation. The first step however was rather straightforward. Since I was only interested in the opioid dependence diagnosis (at least initially), I selected only the ICD-10 codes related to opioid abuse, of which there were only 7, and combined them into a single binary column (positive or negative diagnosis), filtering out the remaining unassociated diseases.
+
+In diving into the genetic sequencing data, I found that sequencing coverage was highly skewed (figure 1).
+
+```{r genes, fig.cap="Distribution of gene sequencing coverage", echo=FALSE, message=FALSE, fig.height=5}
+# plot the distribution of gene sequencing coverage
+gene_dist <- ml_data %>% mutate_if(is.factor, as.character) %>% gather(gene_locus, snp, 7:ncol(ml_data)) %>%
+  filter(!snp %in% c('none')) %>% count(gene_locus) %>% arrange(desc(n)) %>%
+  mutate(num=row_number()) %>% 
+  ggplot(aes(x=num, y=n)) + 
+  geom_bar(stat='identity', fill='#31a354') +
+  scale_y_continuous(expand = c(0,0)) + 
+  scale_x_continuous(expand=c(0,0)) + 
+  labs(x = 'Gene', y = 'Number of patients') + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18))
+gene_dist_plot <- ggplotly(gene_dist, tooltip = "y") %>% layout(margin=list(l = 110, b=75))
+
+# plot the coverage of sequencing for a given patient
+gene_coverage <- ml_data %>% mutate_if(is.factor, as.character) %>% gather(gene_locus, snp, 7:ncol(ml_data)) %>% 
+  filter(snp!='none') %>%
+  group_by(X) %>% count(X) %>% arrange(desc(n)) %>% ungroup() %>% mutate(num = row_number()) %>%
+  ggplot(aes(x=num, y=n)) +
+  geom_area(fill='#31a354') + 
+  scale_x_continuous(expand=c(0,0)) + 
+  scale_y_continuous(expand = c(0,0)) +
+  labs(x = 'Number of patients', y = 'Number genes sequenced') + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18))
+gene_coverage_plot <- ggplotly(gene_coverage, tooltip = "none") %>% layout(margin=list(l = 110, b=75))
+
+subplot(gene_dist_plot, gene_coverage_plot, margin = 0.1, titleX = TRUE, titleY = TRUE)
+```
+
+Encoding the genetic information proved to be more challenging. The genetic sequencing results for each of the 485 genes were in the form of SNP (single nucleotide polymorphisms) calls, or mutations. They were included in several forms; the bases present in the assay (e.g. A/A/, A/G, T, A/C,...), whether a particular SNP was present, or as copy number variants (CNVs - e.g. 0, 1, 2,...). For a given gene, the patients could have one of anywhere between 0 and 8 unique SNP calls (those for which no test was performed were listed as 'none'). To transform this data into a form that could be used for model training, I one-hot encoded the genetic information so that each mutation for a given gene became an independent feature (i.e. a gene with 3 unique SNP calls would be transformed into 3 binary encoded columns - 1 for present and 0 for absent).
 
 
 
-
-```{r opProp, fig.cap = "**A.** Number of negative and positive opioid abuse diagnoses. **B.** Proportion of patients with a positive opioid abuse diagnosis for a given clinic compared to the total number of patients. Only clinics with at least 1 opioid patient are included (114 clinics have 0 patients diagnosed with opioid abuse).", echo=FALSE, message=FALSE}
+```{r opProp, fig.cap = "Left - total number of negative (blue) and positive (orange) opioid abuse diagnoses. Right - Proportion of patients with a positive opioid abuse diagnosis for a given clinic compared to the total number of patients treated at that clinic. Only clinics with at least 1 opioid patient are included (114 remaining clinics have 0 patients with a positive diagnosis).", echo=FALSE, message=FALSE, fig.height=5}
 ml_data$opioid_abuse <- factor(ml_data$opioid_abuse, levels=c(0,1))
 clinic_labs <- c(
   'Louisville Behavioral Health Systems' = 'Clinic 1',
@@ -65,10 +101,9 @@ clinic_labs <- c(
   'Total Health Primary Care' = 'Clinic 7'
 )
 
-opioid_counts_plot <- ml_data %>% select(clinic, opioid_abuse) %>%
+opioid_counts_plot <- ml_data %>% select(clinic, opioid_abuse) %>% 
   ggplot(aes(x=opioid_abuse, fill = opioid_abuse)) + 
   geom_bar(stat='count') +
-  #stat_count(aes(label=..count..), geom="text", vjust=-0.5, size=8) + 
   scale_x_discrete(labels = c('Negative', 'Positive')) + 
   scale_y_continuous(expand=c(0,0), limits = c(0, 3500)) + 
   scale_fill_manual(values = c('#56B4E9', '#D55E00')) +
@@ -82,8 +117,8 @@ p1 <- ggplotly(opioid_counts_plot, tooltip = "y") %>% layout(margin = list(l = 1
 
 ratio <- ml_data %>% select(clinic, opioid_abuse) %>% group_by(clinic) %>% filter(n() > 10) %>%
   select(clinic, opioid_abuse) %>%
-  count(opioid_abuse) %>% mutate(ratio = n/sum(n)) %>% filter(opioid_abuse==1) %>%
-  ggplot(aes(y=ratio, x=clinic)) +
+  count(opioid_abuse) %>% mutate(Ratio = round(n/sum(n), 4)) %>% filter(opioid_abuse==1) %>%
+  ggplot(aes(y=Ratio, x=clinic)) +
   geom_bar(fill='#D55E00', stat='identity') +
   labs(y='% Positive opioid patients', x='Clinic') +
   scale_x_discrete(labels = clinic_labs) +
@@ -98,35 +133,83 @@ p2 <- ggplotly(ratio, tooltip = "y") %>% layout(margin=list(l = 110, b=150))
 subplot(p1, p2, margin = 0.1, titleX = TRUE, titleY = TRUE)
 ```
 
-```{r ROC, echo=FALSE}
+# Model training and analysis
+
+My primary goal for this project was to determine the role of the clinic in identifying those patients with increased risk of opioid dependence. The approach I chose to take was to train two logistic regression models using scikit-learn in Python to predict a patients opioid dependence diagnosis. The first model incorporated only my one-hot encoded genetic features of which there were ~1400, while the second model incorporated both genetic information as well as the clinic where each patient received treatment. In training two separate models with and without the clinic data, I could compare their performances to determine the predictive contribution of the clinic information. 
+
+
+```{r ROC, fig.cap = "Receiver operator characteristic plots from validation set for logistic regression models build from genotype (orange) alone and the combination of genotype and clinic (blue).", echo=FALSE, message=FALSE}
+# ROC plot
 x1 <- data.frame(fpr = roc1$gene_lr_fpr, tpr = roc1$gene_lr_tpr) %>% mutate(label='roc1')
 x2 <- data.frame(fpr = roc2$cg_fpr, tpr = roc2$cg_tpr) %>% mutate(label='roc2')
 #x3 <- data.frame(fpr = roc3$fpr_m3, tpr = roc3$tpr_m3) %>% mutate(label='roc3')
 
 test <- rbind(x1, x2)
-test$label <- factor(test$label, levels = c('roc1', 'roc2'))
+test$label <- factor(test$label, levels = c('roc1', 'roc2'),
+                     labels = c(
+                       'roc1' = 'genotype (AUC = 0.81)',
+                       'roc2' = 'genotype + clinic (AUC = 0.942)'))
 
-roc_labs = c(
-  'roc1' = 'genotype = 0.814',
-  'roc2' = 'genotype + clinic = 0.952'
-  #'roc2' = 'genotype + clinic = 0.971'
-)
-
-roc_plot <- test %>% group_by(label) %>% 
-  ggplot(aes(x=fpr, y=tpr, color = label)) + 
-  geom_line(size=1.2) + 
-  scale_color_manual(values=c('#E69F00', "#56B4E9"), 
-                     labels = roc_labs) + 
+roc_plot <- test %>% group_by(label) %>% mutate(FPR = round(fpr, 4), TPR = round(tpr, 4)) %>%
+  ggplot(aes(x=FPR, y=TPR, color = label)) + 
+  geom_line(size=1.4) + 
+  scale_color_manual(values=c('#E69F00', "#56B4E9")) + 
   geom_abline(linetype=2) +
-  scale_x_continuous(expand=c(0,0), limits=c(0,1.03)) + 
-  scale_y_continuous(expand=c(0,0), limits=c(0,1.03)) + 
-  labs(x="False positive rate", y = "True positive rate", color = 'AUC') +
-  theme(legend.position = c(.45, .1), 
-        legend.text = element_text(size=15),
+  scale_x_continuous(expand=c(0,0), limits=c(0,1.01)) + 
+  scale_y_continuous(expand=c(0,0), limits=c(0,1.01)) + 
+  labs(x="False positive rate", y = "True positive rate", color = 'Area under the curve') +
+  theme(legend.position = c(0.55, 0.15), 
+        legend.title = element_blank(),
+        legend.key.size = unit(1, 'cm'),
+        legend.text = element_text(size=18),
         axis.title = element_text(size=20))
+roc_plot2 <- ggplotly(roc_plot, showlegend=TRUE, tooltip=c('x', 'y')) %>%
+  layout(legend = list(x=0.55, y = 0.25, yanchor="top", margin=list(l = 110, b=150, t=40, r=100, pad=4)))
+
+roc_plot2
 ```
 
 
+```{r confusion, fig.cap="Confusion matrices for **A.** ", echo=FALSE, message=FALSE, fig.height = 4}
+# input data for builiding confusion matrix for clinic_genotype and genotype alone
+FClassClinic <- factor(c(0, 0, 1, 1))
+TClassClinic <- factor(c(0, 1, 0, 1))
+Yclinic      <- c(5, 742, 39, 45)
+clinic_mtx <- data.frame(FClassClinic, TClassClinic, Yclinic)
+
+FClassGene <- factor(c(0, 0, 1, 1))
+TClassGene <- factor(c(0, 1, 0, 1))
+Ygene      <- c(13, 576, 31, 211)
+gene_mtx <- data.frame(FClassGene, TClassGene, Ygene)
+
+clinic_conf <- ggplot(data =  clinic_mtx, mapping = aes(x = FClassClinic, y = TClassClinic)) +
+  geom_tile(aes(fill = Yclinic), colour = "white") +
+  geom_text(aes(label = sprintf("%1.0f", Yclinic)), size=8) +
+  scale_x_discrete(expand=c(0,0), labels=c('Negative', 'Positive')) +
+  scale_y_discrete(expand=c(0,0), labels = c('Positive', 'Negative')) +
+  scale_fill_gradient(low = "#a5c3f6") +
+  labs(x='Predicted label', y='True label', title='Genotype + clinic') +
+  theme(legend.position = "none",
+        axis.text.y = element_text(size=14, angle=90, hjust=.5),
+        axis.text.x = element_text(size=14),
+        axis.title = element_text(size=18),
+        axis.line = element_blank())
+
+gene_conf <- ggplot(data =  gene_mtx, mapping = aes(x = FClassGene, y = TClassGene)) +
+  geom_tile(aes(fill = Ygene), colour = "white") +
+  geom_text(aes(label = sprintf("%1.0f", Ygene)), size=8) +
+  scale_x_discrete(expand=c(0,0), labels=c('Negative', 'Positive')) +
+  scale_y_discrete(expand=c(0,0), labels = c('Positive', 'Negative')) +
+  scale_fill_gradient(low = "#fbd358", high='#ffaf36') +
+  labs(x='Predicted label', y='True label', title='Genotype') +
+  theme(legend.position = "none",
+        axis.text.y = element_text(size=14, angle=90, hjust=.5),
+        axis.text.x = element_text(size=14),
+        axis.title = element_text(size=18),
+        axis.line = element_blank())
+
+plot_grid(gene_conf, clinic_conf, labels = c("A", "B"))
+```
 
 
-
+Demo slides [here](https://docs.google.com/presentation/d/1eIifHITMQxFXhcWFmiNOls03I0ydZka_jO2FMpb7H6o/edit?usp=sharing)
