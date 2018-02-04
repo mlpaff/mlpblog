@@ -53,9 +53,9 @@ I was provided with a dataset with information from over 3000 patients, a small 
 
 Included within these categories was information from over 1850 different diagnoses in the form of ICD-10 codes (International Statistical Classification of Diseases and Related Health Problems), 485 genes, and 121 clinics. Now this dataset was wonderfully complex and required quite a bit of initial manipulation and transformation. The first step however was rather straightforward. Since I was only interested in the opioid dependence diagnosis (at least initially), I selected only the ICD-10 codes related to opioid abuse, of which there were only 7, and combined them into a single binary column (positive or negative diagnosis), filtering out the remaining unassociated diseases.
 
-In diving into the genetic sequencing data, I found that sequencing coverage was highly skewed (figure 1).
+In diving into the genetic data, I found that the distribution in sequencing converage was highly skewed (figure 1). 
 
-```{r genes, fig.cap="Distribution of gene sequencing coverage", echo=FALSE, message=FALSE, fig.height=5}
+```{r genes, fig.cap="Distribution of gene sequencing coverage", echo=FALSE, message=FALSE, fig.height=4}
 # plot the distribution of gene sequencing coverage
 gene_dist <- ml_data %>% mutate_if(is.factor, as.character) %>% gather(gene_locus, snp, 7:ncol(ml_data)) %>%
   filter(!snp %in% c('none')) %>% count(gene_locus) %>% arrange(desc(n)) %>%
@@ -170,7 +170,7 @@ roc_plot2
 ```
 
 
-```{r confusion, fig.cap="Confusion matrices for **A.** ", echo=FALSE, message=FALSE, fig.height = 4}
+```{r confusion, fig.cap="Confusion matrices for", echo=FALSE, message=FALSE, fig.height = 4}
 # input data for builiding confusion matrix for clinic_genotype and genotype alone
 FClassClinic <- factor(c(0, 0, 1, 1))
 TClassClinic <- factor(c(0, 1, 0, 1))
@@ -208,7 +208,7 @@ gene_conf <- ggplot(data =  gene_mtx, mapping = aes(x = FClassGene, y = TClassGe
         axis.title = element_text(size=18),
         axis.line = element_blank())
 
-plot_grid(gene_conf, clinic_conf, labels = c("A", "B"))
+plot_grid(gene_conf, clinic_conf)
 ```
 
 
