@@ -291,7 +291,7 @@ These modeling efforts reveal a potentially powerful tool that could aid in iden
 
 In performing my analysis, I was also interested in looking at the overlapping diagnoses that accompanied the positive opioid abuse diagnosis. I found that there were 12 diagnoses within this dataset that correlated with opioid abuse (figure 7). In the future, these features could be incorporated into the model to improve how we identify the at-risk patients. 
 
-```{r overlapping-diseases, fig.cap="Patient counts for diseases that occurred concurrently with the opioid dependence diagnosis", echo=FALSE, message=FALSE, fig.height=5}
+```{r overlapping-diseases, fig.cap="Patient counts for diseases that occurred concurrently with the opioid dependence diagnosis", echo=FALSE, message=FALSE}
 t1 <- overlap %>% filter(multi_diags==2)
 
 disease_labs <- c(
@@ -313,12 +313,12 @@ Filter(function(u) any(grepl('1',u)), overlap) %>% select(-opioid_abuse) %>% gat
   group_by(disease) %>% filter(diag==1) %>% count() %>% filter(n>4) %>% 
   ggplot(aes(x=disease, y=n)) + 
   geom_bar(stat='identity', fill = '#56B4E9') + 
-  scale_y_continuous(expand=c(0,0)) + 
+  scale_y_continuous(expand=c(0,0), limits = c(0,100)) + 
   scale_x_discrete(labels=disease_labs) +
   labs(y = 'Number of patients') +
   coord_flip() +
   theme(axis.title.y = element_blank(),
-        axis.title.x = element_text(size=20),
+        axis.title.x = element_text(size=18),
         axis.text.x = element_text(size=12)) -> overlap_plot
 overlap_plot
 ```
