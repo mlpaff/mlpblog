@@ -45,7 +45,7 @@ The company that I consulted for was interested in asking whether they could tak
 
 # The Data
 
-I was provided with a dataset with information from over 3000 patients, a small random subset from their database. Within this data, I worked with three primary classes of information:
+I was provided with a dataset with information from over 3300 patients, a small random subset from their database. Within this data, I worked with three primary classes of information:
 
 1. Patient diagnosis
 2. Genetic sequencing results
@@ -53,43 +53,43 @@ I was provided with a dataset with information from over 3000 patients, a small 
 
 Included within these categories was information from over 1850 different diagnoses in the form of ICD-10 codes (International Statistical Classification of Diseases and Related Health Problems), 485 genes, and 121 clinics. Now this dataset was wonderfully complex and required quite a bit of initial manipulation and transformation. The first step however was rather straightforward. Since I was only interested in the opioid dependence diagnosis (at least initially), I selected only the ICD-10 codes related to opioid abuse, of which there were only 7, and combined them into a single binary column (positive or negative diagnosis), filtering out the remaining unassociated diseases.
 
-In diving into the genetic data, I found that the distribution in sequencing converage was highly skewed (figure 1). 
+In diving into the genetic data, I found that the distribution in sequencing converage was highly skewed (figure 1). Fewer than 40 genes were sequenced for more than 2000 patients. Coverage quickly drops off, with nearly 150 genes appearing to have been sequenced in fewer than 5 patients.
 
-```{r genes, fig.cap="Distribution of gene sequencing coverage", echo=FALSE, message=FALSE, fig.height=4}
+```{r genes, fig.cap="Distribution of gene sequencing coverage. Number of patients with sequencing information for a given gene", echo=FALSE, message=FALSE, fig.height=5}
 # plot the distribution of gene sequencing coverage
 gene_dist <- ml_data %>% mutate_if(is.factor, as.character) %>% gather(gene_locus, snp, 7:ncol(ml_data)) %>%
   filter(!snp %in% c('none')) %>% count(gene_locus) %>% arrange(desc(n)) %>%
-  mutate(num=row_number()) %>% 
-  ggplot(aes(x=num, y=n)) + 
+  mutate(gene=row_number()) %>% 
+  ggplot(aes(x=gene, y=n)) + 
   geom_bar(stat='identity', fill='#31a354') +
   scale_y_continuous(expand = c(0,0)) + 
   scale_x_continuous(expand=c(0,0)) + 
   labs(x = 'Gene', y = 'Number of patients') + 
   theme(axis.text = element_text(size = 14),
         axis.title = element_text(size = 18))
-gene_dist_plot <- ggplotly(gene_dist, tooltip = "y") %>% layout(margin=list(l = 110, b=75))
-
+gene_dist_plot <- ggplotly(gene_dist, tooltip = c('x','y')) %>% layout(margin=list(l = 110, b=75))
+ggplotly(gene_dist_plot, titleX=TRUE, titleY=TRUE)
 # plot the coverage of sequencing for a given patient
-gene_coverage <- ml_data %>% mutate_if(is.factor, as.character) %>% gather(gene_locus, snp, 7:ncol(ml_data)) %>% 
-  filter(snp!='none') %>%
-  group_by(X) %>% count(X) %>% arrange(desc(n)) %>% ungroup() %>% mutate(num = row_number()) %>%
-  ggplot(aes(x=num, y=n)) +
-  geom_area(fill='#31a354') + 
-  scale_x_continuous(expand=c(0,0)) + 
-  scale_y_continuous(expand = c(0,0)) +
-  labs(x = 'Number of patients', y = 'Number genes sequenced') + 
-  theme(axis.text = element_text(size = 14),
-        axis.title = element_text(size = 18))
-gene_coverage_plot <- ggplotly(gene_coverage, tooltip = "none") %>% layout(margin=list(l = 110, b=75))
+# gene_coverage <- ml_data %>% mutate_if(is.factor, as.character) %>% gather(gene_locus, snp, 7:ncol(ml_data)) %>% 
+#   filter(snp!='none') %>%
+#   group_by(X) %>% count(X) %>% arrange(desc(n)) %>% ungroup() %>% mutate(num = row_number()) %>%
+#   ggplot(aes(x=num, y=n)) +
+#   geom_area(fill='#31a354') + 
+#   scale_x_continuous(expand=c(0,0)) + 
+#   scale_y_continuous(expand = c(0,0)) +
+#   labs(x = 'Number of patients', y = 'Number genes sequenced') + 
+#   theme(axis.text = element_text(size = 14),
+#         axis.title = element_text(size = 18))
+#gene_coverage_plot <- ggplotly(gene_coverage, tooltip = "none") %>% layout(margin=list(l = 110, b=75))
 
-subplot(gene_dist_plot, gene_coverage_plot, margin = 0.1, titleX = TRUE, titleY = TRUE)
+#subplot(gene_dist_plot, gene_coverage_plot, margin = 0.1, titleX = TRUE, titleY = TRUE)
 ```
 
-Encoding the genetic information proved to be more challenging. The genetic sequencing results for each of the 485 genes were in the form of SNP (single nucleotide polymorphisms) calls, or mutations. They were included in several forms; the bases present in the assay (e.g. A/A/, A/G, T, A/C,...), whether a particular SNP was present, or as copy number variants (CNVs - e.g. 0, 1, 2,...). For a given gene, the patients could have one of anywhere between 0 and 8 unique SNP calls (those for which no test was performed were listed as 'none'). To transform this data into a form that could be used for model training, I one-hot encoded the genetic information so that each mutation for a given gene became an independent feature (i.e. a gene with 3 unique SNP calls would be transformed into 3 binary encoded columns - 1 for present and 0 for absent).
+In addition to uneven coverage, the genetic data was quite complex. Sequencing results for each of the 485 genes were in the form of SNP (single nucleotide polymorphisms) calls, or mutations. These SNPs were identified in several forms; the bases present in the assay (e.g. A/A/, A/G, T, -/C,...), whether a particular SNP was present, or as copy number variants (CNVs - e.g. 0, 1, 2,...). For a given gene, the patients could have one of anywhere between 0 and 8 unique SNP calls (those for which no test was performed were listed as 'none'). To transform this data into a form that could be used for model training, I used one-hot encoding, where each unique SNP call within a given gene becomes its own feature, now encoded as a binary value indicating whether the mutation is present or absent. One-hot encoding the genetic data resulted in an expansion in the dimentionality of me gene feature set (from 485 to more than 1300). In order to reduce some of this dimentionality, I chose to focus only on the features that contained actual genetic mutation information, removing the "none" gene features that only indicated lack of a test being performed. 
 
+I next wanted to look at the distribution of patients with a positive opioid abuse diagnosis across the 121 clinics within the dataset. Out of the 121 clinics included, only 7 had at least 1 patient with a positive opioid abuse diagnosis. The ratio of positive to total patients within these 7 clincs varied significantly, from less than 1% to 87% (figure 1). In addition, the total number of positive opioid patients was only 175 compared to 3148 patients identified as negative for opioid abuse. This result indicated that the dataset was highly imbalanced; something that I would need to account for before implementing any sort of machine learning algorithm. 
 
-
-```{r opProp, fig.cap = "Left - total number of negative (blue) and positive (orange) opioid abuse diagnoses. Right - Proportion of patients with a positive opioid abuse diagnosis for a given clinic compared to the total number of patients treated at that clinic. Only clinics with at least 1 opioid patient are included (114 remaining clinics have 0 patients with a positive diagnosis).", echo=FALSE, message=FALSE, fig.height=5}
+```{r opProp, fig.cap = "Left - total number of negative (blue) and positive (orange) opioid abuse diagnoses. Right - Proportion of patients with a positive opioid abuse diagnosis for a given clinic compared to the total number of patients treated at that clinic. Only clinics with at least 1 opioid patient are included (114 remaining clinics have 0 patients with a positive diagnosis).", echo=FALSE, message=FALSE, fig.height=5, fig.align='center'}
 ml_data$opioid_abuse <- factor(ml_data$opioid_abuse, levels=c(0,1))
 clinic_labs <- c(
   'Louisville Behavioral Health Systems' = 'Clinic 1',
@@ -135,10 +135,16 @@ subplot(p1, p2, margin = 0.1, titleX = TRUE, titleY = TRUE)
 
 # Model training and analysis
 
-My primary goal for this project was to determine the role of the clinic in identifying those patients with increased risk of opioid dependence. The approach I chose to take was to train two logistic regression models using scikit-learn in Python to predict a patients opioid dependence diagnosis. The first model incorporated only my one-hot encoded genetic features of which there were ~1400, while the second model incorporated both genetic information as well as the clinic where each patient received treatment. In training two separate models with and without the clinic data, I could compare their performances to determine the predictive contribution of the clinic information. 
+The primary goal of this project was to determine the role of the clinic in identifying those patients with increased risk of opioid dependence. The approach I chose to take was to train two logistic regression models using scikit-learn in Python to predict a patients opioid dependence diagnosis. The first model incorporated only my one-hot encoded genetic features of which there were 876, while the second model incorporated both genetic information as well as the clinic where each patient received treatment. In training two separate models with and without the clinic data, I could compare their performances to determine the predictive contribution of the clinic information. 
+
+To train the models, I used 75% of the data, reserving the remaining 25% off for final validation of the models. The first thing I needed to do before training was balance my data. Training a logistic regression model without first balancing the diagnosis classes, would just result in a model that could just predict negative the entire time and still be highly accurate. I tested two methods of balancing, oversampling the under-represented class with replacement or changing the "class_weight" parameter to "balanced," which penalizes mis-classifying the minority class by an amount proportional to the level of imbalance. Both methods were comparable, but I used the "class_weight" balance to report my results here. 
+
+Due to the high dimentionality as well as sparsity of some of my features, I used L1 regularization when performing the logistic regression. The benefit of L1 regularization is to reduce the coefficients of the unimportant features to 0, eliminating them as features in the model. Both models were implemented using the same training set, with the only difference being that I filtered out the clinic features before training the model to predict opioid abuse using the genotype data alone. 
 
 
-```{r ROC, fig.cap = "Receiver operator characteristic plots from validation set for logistic regression models build from genotype (orange) alone and the combination of genotype and clinic (blue).", echo=FALSE, message=FALSE}
+
+
+```{r ROC, fig.cap = "Receiver operator characteristic plots from validation set for logistic regression models build from genotype (orange) alone and the combination of genotype and clinic (blue).", echo=FALSE, message=FALSE, fig.width=7}
 # ROC plot
 x1 <- data.frame(fpr = roc1$gene_lr_fpr, tpr = roc1$gene_lr_tpr) %>% mutate(label='roc1')
 x2 <- data.frame(fpr = roc2$cg_fpr, tpr = roc2$cg_tpr) %>% mutate(label='roc2')
