@@ -6,9 +6,37 @@
     <description>Recent content in Tags on Matthew Paff</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
+    <lastBuildDate>Fri, 02 Feb 2018 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Data Science</title>
+      <link>/tags/data-science/</link>
+      <pubDate>Fri, 02 Feb 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/data-science/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Genetics</title>
+      <link>/tags/genetics/</link>
+      <pubDate>Fri, 02 Feb 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/genetics/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Opioid Epidemic</title>
+      <link>/tags/opioid-epidemic/</link>
+      <pubDate>Fri, 02 Feb 2018 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/opioid-epidemic/</guid>
+      <description></description>
+    </item>
     
   </channel>
 </rss>

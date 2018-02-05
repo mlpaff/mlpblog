@@ -7,7 +7,7 @@ coverImage: ../imgs/UT.jpg
 thumbnailImagePosition: right
 summary: "My Insight Health Data Science consulting project, identifying patients at risk for opioid dependence"
 categories: ['Health Data Science']
-tags: []
+tags: ['Opioid Epidemic', 'Genetics', 'Data Science']
 ---
 
 ```{r setup, include=FALSE}
@@ -31,7 +31,7 @@ overlap <- read.csv("../../../opioid_overlap.csv")
 ```
 # Identifying patients at risk for opioid dependence
 
-*Matthew Paff, an Insight Health Data Science fellow (Spring, 2018), recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molexcular Biology. There he modeled population dynamics of transmissible anti-viral defense using bacteriophage (viruses that infect bacteria) and developed novel approaches for genetically engineering attenuated vaccines.*
+*Matthew Paff, an Insight Health Data Science fellow (Spring, 2018), recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molecular Biology. There he modeled population dynamics of transmissible anti-viral defense using bacteriophage (viruses that infect bacteria) and developed novel approaches for genetically engineering attenuated vaccines.*
 
 This spring I participated in the Insight Health Data Science fellowship program, working as a consultant for a company that provides data management solutions to specialty diagnostic clinics. Recently, they have been interested in expanding their role to include data-driven analytics to enhance the quality of patient care for their clients. Over the past few weeks, I have been working with this company to leverage their clinical data to address a particularly important public health issue: the opioid epidemic.
 
@@ -57,7 +57,7 @@ I was provided with a dataset with information from over 3300 patients, a small 
 
 Included within these categories was information from over 1850 different diagnoses in the form of ICD-10 codes (International Statistical Classification of Diseases and Related Health Problems), 485 genes, and 121 clinics. Now this dataset was wonderfully complex and required quite a bit of initial manipulation and transformation. The first step however was rather straightforward. Since I was only interested in the opioid dependence diagnosis (at least initially), I selected only the ICD-10 codes related to opioid abuse, of which there were only 7, and combined them into a single binary column (positive or negative diagnosis), filtering out the remaining unassociated diseases.
 
-In diving into the genetic data, I found that the distribution in sequencing converage was highly skewed (figure 1). Fewer than 40 genes were sequenced for more than 2000 patients. Coverage quickly drops off, with nearly 150 genes appearing to have been sequenced in fewer than 5 patients.
+In diving into the genetic data, I found that the distribution in sequencing converage was highly skewed (figure 1). Fewer than 40 genes were sequenced for more than 2000 patients. Coverage quickly drops off after that, with nearly 150 genes appearing to have been sequenced in fewer than 5 patients.
 
 ```{r genes, fig.cap="Distribution of gene sequencing coverage. Number of patients with sequencing information for a given gene", echo=FALSE, message=FALSE, fig.height=5}
 # plot the distribution of gene sequencing coverage
@@ -173,12 +173,12 @@ roc_plot <- test %>% group_by(label) %>% mutate(FPR = round(fpr, 4), TPR = round
         legend.text = element_text(size=14),
         axis.title = element_text(size=18))
 roc_plot2 <- ggplotly(roc_plot, showlegend=TRUE, tooltip=c('x', 'y')) %>%
-  layout(legend = list(x=0.55, y = 0.25, yanchor="top", margin=list(l = 110, b=150, t=40, r=100, pad=4)))
+  layout(legend = list(x=0.45, y = 0.25, yanchor="top", margin=list(l = 110, b=150, t=40, r=100, pad=4)))
 
 roc_plot2
 ```
 
-While this measure indicates improved performance between the two models, the AUC is not always the ideal metric when the data is imbalanced since it is insensitive to the false positive rate. A second, potentially more informative metric that was more appropriate in this case was the precision-recall curve (figure 5). Here the average precision score (AP) increases from 0.20 to 0.64, again illustrating superior performance when clinic is included in the model. 
+While this measure indicates improved performance between the two models, the AUC is not always the ideal metric when the data is imbalanced since it is insensitive to the false positive rate. A second, potentially more informative metric this case might be the precision-recall curve, which is more informative to how well the models are classifying the patients (figure 5). Here the average precision score (AP) increases from 0.20 to 0.64, again illustrating superior performance when clinic is included in the model. 
 
 ```{r precision-recall, fig.cap="Precision-recall curves calulated from the validation set using the models for genotype (orange) alone and the combination of genotype and clinic (blue). Average precision score increases when clinic is included in the model", echo=FALSE, message=FALSE, fig.width=7}
 g1 <- data.frame(pre = gene_pr$gene_precision, rec = gene_pr$gene_recall) %>% mutate(label='gene')
@@ -249,9 +249,9 @@ gene_conf <- ggplot(data =  gene_mtx, mapping = aes(x = FClassGene, y = TClassGe
 #plot_grid(gene_conf, clinic_conf)
 ```
 
-An additional benefit of using a logistic regression for this problem was that I could extract the important features (those with the highest absolute coefficient values). 
+An additional benefit of using a logistic regression for this problem was that I could extract the important features (those with the highest absolute coefficient values) and evaluate whether they made sense with respect to being important predictors for a positive opioid diagnosis (figure 6). The top 4 most important features were all clinics, with the top two having the highest proportion of opioid patients in the dataset. As a form of validating these important clinics, I looked up the location for the top 3 clinics and found that they do in fact reside in areas with elevated opioid overdose rates. Interestingly, the following 4 important features were all genes that are part of the cytochrome P450 family of enzymes commonly found in drug metabolism pathways. Of note is the CYP2D6 gene, which commonly metabolizes opioids into morphine and variants have been identified as contributing to addiction-related pathways. 
 
-```{r feat-importances, fig.cap="Important features from the model trained on the genotype and clinic data", echo=FALSE, message=FALSE}
+```{r feat-importances, fig.cap="Important features from the model trained on the genotype and clinic data.", echo=FALSE, message=FALSE, fig.height=5}
 lr_feats1$feature <- factor(lr_feats1$feature, levels = lr_feats1$feature[order(lr_feats1$importance, decreasing = F)])
 
 feats1_labs <- c(
@@ -285,8 +285,13 @@ lr_feats1 %>%
 feat_importances
 ```
 
+## Conclusions
 
-```{r overlapping diseases, fig.cap="Patient counts for diseases that occurred concurrently with the opioid dependence diagnosis", echo=FALSE, message=FALSE}
+These modeling efforts reveal a potentially powerful tool that could aid in identifying patients at risk for developing opioid dependence. These results suggest that in addition to genotype data, the clinic plays an important role in identifying patients with opioid dependence. It is important to recognize that genotype alone cannot and should not be used diagnose opioid dependence on its own, but could rather be used as an indicator for increased likelihood of susceptibility to dependance. While the efforts discussed here are preliminary and limited to a small sample size, it points towards a potentially useful application in identifying such patients so that future treatment can attempt to minimize their risk of converting to a dependent state. 
+
+In performing my analysis, I was also interested in looking at the overlapping diagnoses that accompanied the positive opioid abuse diagnosis. I found that there were 12 diagnoses within this dataset that correlated with opioid abuse (figure 7). In the future, these features could be incorporated into the model to improve how we identify the at-risk patients. 
+
+```{r overlapping-diseases, fig.cap="Patient counts for diseases that occurred concurrently with the opioid dependence diagnosis", echo=FALSE, message=FALSE, fig.height=5}
 t1 <- overlap %>% filter(multi_diags==2)
 
 disease_labs <- c(
@@ -318,5 +323,6 @@ Filter(function(u) any(grepl('1',u)), overlap) %>% select(-opioid_abuse) %>% gat
 overlap_plot
 ```
 
+An ideal model, and one that was outside of the scope of what I could accomplish within this project, might be one that identifies populations or even geographic regions with elevated opioid dependence risk so that genetic screening could be used to quantify individual patient-risk for opioid abuse. The idea being that one could suggest that clinics found in these "hot-spot" regions perform these genetic tests so that pain medication prescriptions and dosages could be personalized to reduce the likelihood of converting a patient to a dependent state while still providing adequate pain management. Incorporating data on demographics, geographic location, and potential indicator diagnoses (e.g. long-term drug therapy) would be useful in implementing such a model.
 
-Demo slides [here](https://docs.google.com/presentation/d/1eIifHITMQxFXhcWFmiNOls03I0ydZka_jO2FMpb7H6o/edit?usp=sharing)
+Demo slides can be found [here](https://docs.google.com/presentation/d/1eIifHITMQxFXhcWFmiNOls03I0ydZka_jO2FMpb7H6o/edit?usp=sharing)
