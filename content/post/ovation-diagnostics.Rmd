@@ -22,6 +22,10 @@ ml_data = read.csv('../../../ml_data.csv')
 df_raw <- read.csv('../../../admin_analytics_reports_011118.csv')
 roc1 <- read.csv('../../../roc1.csv')
 roc2 <- read.csv('../../../roc2.csv')
+gene_pr <- read.csv('../../../pr_gene.csv')
+clinic_pr <- read.csv('../../../pr_clinic.csv')
+lr_feats1 <- read.csv('../../../lr_features.csv')
+overlap <- read.csv("../../../opioid_overlap.csv")
 
 #This spring I participated in the Insight Health Data Science Fellowship, working as a consultant for [Ovation](https://www.ovation.io/); a data management and solutions company that provides services for specialty diagnostic clinics. In addition to providing data management solutions, Ovation is working to provide data driven analytics and solutions to enhance patient care at the clinical level. Over the past few weeks, I have been collaborating with Barry Wark, CEO and Co-founder of Ovation, to see if we could leverage their clinic data to address a particularly important public health issue: the opioid epidemic.
 ```
@@ -31,7 +35,7 @@ roc2 <- read.csv('../../../roc2.csv')
 
 This spring I participated in the Insight Health Data Science fellowship program, working as a consultant for a company that provides data management solutions to specialty diagnostic clinics. Recently, they have been interested in expanding their role to include data-driven analytics to enhance the quality of patient care for their clients. Over the past few weeks, I have been working with this company to leverage their clinical data to address a particularly important public health issue: the opioid epidemic.
 
-# Background
+## Background
 
 Opioid abuse is a serious public health crisis that has reached epidemic proportions over the past few years (figure 1). In 2016, there were over 42,249 [opioid-related deaths](https://www.cdc.gov/drugoverdose/data/statedeaths.html) in the United States. This is more than the number of Americans that die from breast cancer every year. It is currently the leading cause of injury death in the United States. Overprescription of pain medication is a significant contributor to this problem. In 2015, there were over 300 million opioid prescriptions written in the US, with [Americans consuming over 80%](https://www.cnbc.com/2016/04/27/americans-consume-almost-all-of-the-global-opioid-supply.html) of the global opioid supply. 
 
@@ -43,7 +47,7 @@ Early identification of patients with opioid addiction or those who may be at in
 
 The company that I consulted for was interested in asking whether they could take advantage of their clinical patient data to address this opioid dependence problem. More specifically, they wanted to measure the what contribution, if any, the clinic played in the identification of these patients. Here I used genetic sequencing data and information on the patients' clinics to train a machine-learning model in Python to identify patients diagnosed with opioid dependence. I was primarily interested in quantifying the role that the individual clinics play in making these predictions.
 
-# The Data
+## The Data
 
 I was provided with a dataset with information from over 3300 patients, a small random subset from their database. Within this data, I worked with three primary classes of information:
 
@@ -133,18 +137,17 @@ p2 <- ggplotly(ratio, tooltip = "y") %>% layout(margin=list(l = 110, b=150))
 subplot(p1, p2, margin = 0.1, titleX = TRUE, titleY = TRUE)
 ```
 
-# Model training and analysis
+## Model Implementation and Results
 
-The primary goal of this project was to determine the role of the clinic in identifying those patients with increased risk of opioid dependence. The approach I chose to take was to train two logistic regression models using scikit-learn in Python to predict a patients opioid dependence diagnosis. The first model incorporated only my one-hot encoded genetic features of which there were 876, while the second model incorporated both genetic information as well as the clinic where each patient received treatment. In training two separate models with and without the clinic data, I could compare their performances to determine the predictive contribution of the clinic information. 
+The primary goal of this project was to determine the role of the clinic in identifying those patients with increased risk of opioid dependence. My strategy for accomplishing this was to train two logistic regression models using scikit-learn in Python to predict the patients' opioid dependence diagnosis. The first model incorporated only the one-hot encoded genetic features (of which there were 876), while the second model incorporated both genetic information as well as the clinic where each patient received treatment. In training two separate models with and without the clinic data, I could compare their performances to determine the predictive contribution of the clinic information.
 
-To train the models, I used 75% of the data, reserving the remaining 25% off for final validation of the models. The first thing I needed to do before training was balance my data. Training a logistic regression model without first balancing the diagnosis classes, would just result in a model that could just predict negative the entire time and still be highly accurate. I tested two methods of balancing, oversampling the under-represented class with replacement or changing the "class_weight" parameter to "balanced," which penalizes mis-classifying the minority class by an amount proportional to the level of imbalance. Both methods were comparable, but I used the "class_weight" balance to report my results here. 
+To train the models, I used 75% of the data, reserving the remaining 25% off for final validation of the models. The first thing I needed to do before training was balance the opioid abuse diagnosis classes. Training a logistic regression model without first balancing the diagnosis classes, would just result in a model that could just predict negative the entire time and still be highly accurate. I tested two methods of balancing, oversampling the under-represented class with replacement or changing the "class_weight" parameter to "balanced," which penalizes mis-classifying the minority class by an amount proportional to the level of imbalance. Both methods were comparable, but I used the "class_weight" balance to report my results here. 
 
 Due to the high dimentionality as well as sparsity of some of my features, I used L1 regularization when performing the logistic regression. The benefit of L1 regularization is to reduce the coefficients of the unimportant features to 0, eliminating them as features in the model. Both models were implemented using the same training set, with the only difference being that I filtered out the clinic features before training the model to predict opioid abuse using the genotype data alone. 
 
+The validation (test) set was used to calulate the receiver operator characteristic (ROC) and area under the curve (AUC) for both models (figure 4). The AUC improved signicantly, from 0.81 to 0.942, when including the clinic where the patients were treated in the model. 
 
-
-
-```{r ROC, fig.cap = "Receiver operator characteristic plots from validation set for logistic regression models build from genotype (orange) alone and the combination of genotype and clinic (blue).", echo=FALSE, message=FALSE, fig.width=7}
+```{r ROC, fig.cap = "Receiver operator characteristic plots from validation set for logistic regression models built from genotype (orange) alone and the combination of genotype and clinic (blue). AUC improves when clinic is included in the model", echo=FALSE, message=FALSE, fig.width=7}
 # ROC plot
 x1 <- data.frame(fpr = roc1$gene_lr_fpr, tpr = roc1$gene_lr_tpr) %>% mutate(label='roc1')
 x2 <- data.frame(fpr = roc2$cg_fpr, tpr = roc2$cg_tpr) %>% mutate(label='roc2')
@@ -164,17 +167,46 @@ roc_plot <- test %>% group_by(label) %>% mutate(FPR = round(fpr, 4), TPR = round
   scale_x_continuous(expand=c(0,0), limits=c(0,1.01)) + 
   scale_y_continuous(expand=c(0,0), limits=c(0,1.01)) + 
   labs(x="False positive rate", y = "True positive rate", color = 'Area under the curve') +
-  theme(legend.position = c(0.55, 0.15), 
+  theme(legend.position = c(0.35, 0.15), 
         legend.title = element_blank(),
         legend.key.size = unit(1, 'cm'),
-        legend.text = element_text(size=18),
-        axis.title = element_text(size=20))
+        legend.text = element_text(size=14),
+        axis.title = element_text(size=18))
 roc_plot2 <- ggplotly(roc_plot, showlegend=TRUE, tooltip=c('x', 'y')) %>%
   layout(legend = list(x=0.55, y = 0.25, yanchor="top", margin=list(l = 110, b=150, t=40, r=100, pad=4)))
 
 roc_plot2
 ```
 
+While this measure indicates improved performance between the two models, the AUC is not always the ideal metric when the data is imbalanced since it is insensitive to the false positive rate. A second, potentially more informative metric that was more appropriate in this case was the precision-recall curve (figure 5). Here the average precision score (AP) increases from 0.20 to 0.64, again illustrating superior performance when clinic is included in the model. 
+
+```{r precision-recall, fig.cap="Precision-recall curves calulated from the validation set using the models for genotype (orange) alone and the combination of genotype and clinic (blue). Average precision score increases when clinic is included in the model", echo=FALSE, message=FALSE, fig.width=7}
+g1 <- data.frame(pre = gene_pr$gene_precision, rec = gene_pr$gene_recall) %>% mutate(label='gene')
+c1 <- data.frame(pre = clinic_pr$clinic_precision, rec = clinic_pr$clinic_recall) %>% mutate(label='clinic')
+
+pr_df <- rbind(g1, c1)
+pr_df$label <- factor(pr_df$label, levels = c('gene', 'clinic'),
+                     labels = c(
+                       'gene' = 'genotype (AP = 0.20)',
+                       'clinic' = 'genotype + clinic (AP = 0.64)'))
+
+precision_recall <- pr_df %>% group_by(label) %>%
+  ggplot(aes(x=rec, y=pre, color = label)) + 
+  geom_line(size=1.4) + 
+  scale_color_manual(values=c('#E69F00', "#56B4E9")) + 
+  #geom_abline(linetype=2) +
+  scale_x_continuous(expand=c(0,0), limits=c(0,1.01)) + 
+  scale_y_continuous(expand=c(0,0), limits=c(0,1.01)) + 
+  labs(x="Recall", y = "Precision", color = 'AP') +
+  theme(legend.position = c(0.45, 0.85), 
+        legend.title = element_blank(),
+        legend.key.size = unit(1, 'cm'),
+        legend.text = element_text(size=14),
+        axis.title = element_text(size=18))
+precision_recall
+#pre_rec_plot <- ggplotly(roc_plot, showlegend=TRUE, tooltip=c('x', 'y')) %>%
+#  layout(legend = list(x=0.55, y = 0.25, yanchor="top", margin=list(l = 110, b=150, t=40, r=100, pad=4)))
+```
 
 ```{r confusion, fig.cap="Confusion matrices for", echo=FALSE, message=FALSE, fig.height = 4}
 # input data for builiding confusion matrix for clinic_genotype and genotype alone
@@ -214,7 +246,76 @@ gene_conf <- ggplot(data =  gene_mtx, mapping = aes(x = FClassGene, y = TClassGe
         axis.title = element_text(size=18),
         axis.line = element_blank())
 
-plot_grid(gene_conf, clinic_conf)
+#plot_grid(gene_conf, clinic_conf)
+```
+
+An additional benefit of using a logistic regression for this problem was that I could extract the important features (those with the highest absolute coefficient values). 
+
+```{r feat-importances, fig.cap="Important features from the model trained on the genotype and clinic data", echo=FALSE, message=FALSE}
+lr_feats1$feature <- factor(lr_feats1$feature, levels = lr_feats1$feature[order(lr_feats1$importance, decreasing = F)])
+
+feats1_labs <- c(
+  'clinic_Pathway Outpatient Services, LLC' = 'Clinic 5',
+  'clinic_Reliance Laboratory Testing' = 'Clinic 6',
+  'clinic_MAT of Georgia' = 'Clinic 3',
+  'clinic_Louisville Behavioral Health Systems' = 'Clinic 1',
+  'C__30634242_40_C/C' = 'C__30634242_40',
+  'CYP2D6_2' = 'CYP2D6',
+  'C__60142977_10_T/T' = 'C__60142977_10',
+  'C__26201809_30_C/C' = 'C__26201809_30',
+  'hCV59013445_G/G'= 'hCV59013445',
+  'C___1202883_20_G/A' = 'C___1202883_20',
+  'C___8726802_20_G/G' = 'C___8726802_20',
+  'C__25746809_50_G/G' = 'C__25746809_50',
+  'clinic_Prism Health Dx' = 'Clinic 8'
+)
+
+lr_feats1 %>% 
+  ggplot(aes(x=feature, y=importance, fill = feature)) +
+  geom_bar(stat='identity', fill = '#56B4E9') + 
+  coord_flip() +
+  scale_x_discrete(labels = feats1_labs) +
+  #scale_fill_manual(values = c('#56B4E9', '#56B4E9', '#56B4E9','#56B4E9','#56B4E9','#56B4E9',
+  #                             '#56B4E9','#56B4E9','#56B4E9','#56B4E9', 'black', 'green', 'purple')) + 
+  labs(y='Feature Importance') +
+  theme(legend.position= 'none', 
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(size=20),
+        axis.text = element_text(size=14)) -> feat_importances
+feat_importances
+```
+
+
+```{r overlapping diseases, fig.cap="Patient counts for diseases that occurred concurrently with the opioid dependence diagnosis", echo=FALSE, message=FALSE}
+t1 <- overlap %>% filter(multi_diags==2)
+
+disease_labs <- c(
+  'F10.10' = 'Alcohol abuse',
+  'F10.20' = 'Alcohol dependence',
+  'F12.20' = 'Cannabis dependence',
+  'F32.2' = 'Depression',
+  'F33.1' = 'Recurrent depression',
+  'F33.2' = 'Psychotic depression',
+  'F33.9' = 'Unspecified depression',
+  'F41.1' = 'General anxiety',
+  'F41.9' = 'Unspecified anxiety',
+  'G47.00' = 'Insomnia',
+  'unnamed..9' = 'unidentified',
+  'Z79.899' = 'Long-term drug therapy'
+)
+
+Filter(function(u) any(grepl('1',u)), overlap) %>% select(-opioid_abuse) %>% gather(disease, diag, I10:F43.21) %>%
+  group_by(disease) %>% filter(diag==1) %>% count() %>% filter(n>4) %>% 
+  ggplot(aes(x=disease, y=n)) + 
+  geom_bar(stat='identity', fill = '#56B4E9') + 
+  scale_y_continuous(expand=c(0,0)) + 
+  scale_x_discrete(labels=disease_labs) +
+  labs(y = 'Number of patients') +
+  coord_flip() +
+  theme(axis.title.y = element_blank(),
+        axis.title.x = element_text(size=20),
+        axis.text.x = element_text(size=12)) -> overlap_plot
+overlap_plot
 ```
 
 
