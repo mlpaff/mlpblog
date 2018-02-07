@@ -1,5 +1,5 @@
 ---
-title: Ovation Diagnostics
+title: Ovation.io
 author: 'Matthew Paff'
 date: '2018-02-02'
 slug: ovation-diagnostics
@@ -26,18 +26,16 @@ gene_pr <- read.csv('../../../pr_gene.csv')
 clinic_pr <- read.csv('../../../pr_clinic.csv')
 lr_feats1 <- read.csv('../../../lr_features.csv')
 overlap <- read.csv("../../../opioid_overlap.csv")
-
-#This spring I participated in the Insight Health Data Science Fellowship, working as a consultant for [Ovation](https://www.ovation.io/); a data management and solutions company that provides services for specialty diagnostic clinics. In addition to providing data management solutions, Ovation is working to provide data driven analytics and solutions to enhance patient care at the clinical level. Over the past few weeks, I have been collaborating with Barry Wark, CEO and Co-founder of Ovation, to see if we could leverage their clinic data to address a particularly important public health issue: the opioid epidemic.
 ```
 # Identifying patients at risk for opioid dependence
 
 *Matthew Paff, an Insight Health Data Science fellow (Spring, 2018), recently graduated from the University of Texas at Austin with a Ph.D. in Cell and Molecular Biology. There he modeled population dynamics of transmissible anti-viral defense using bacteriophage (viruses that infect bacteria) and developed novel approaches for genetically engineering attenuated vaccines.*
 
-This spring I participated in the Insight Health Data Science fellowship program, working as a consultant for a company that provides data management solutions to specialty diagnostic clinics. Recently, they have been interested in expanding their role to include data-driven analytics to enhance the quality of patient care for their clients. Over the past few weeks, I have been working with this company to leverage their clinical data to address a particularly important public health issue: the opioid epidemic.
+This spring I participated in the Insight Health Data Science Fellowship, working as a consultant for [Ovation](https://www.ovation.io/); a provider of cloud-based LIMS and commercial platform for specialzed diagnostic labs. More recently, Ovation has been interested in additionally providing data driven analytics and solutions to enhance patient care for their clients. Over the past few weeks, I have been working with Ovation to leverage their clinical data to address a particularly important public health issue: the opioid epidemic..
 
 ## Background
 
-Opioid abuse is a serious public health crisis that has reached epidemic proportions over the past few years (figure 1). In 2016, there were over 42,249 [opioid-related deaths](https://www.cdc.gov/drugoverdose/data/statedeaths.html) in the United States. This is more than the number of Americans that die from breast cancer every year. It is currently the leading cause of injury death in the United States. Overprescription of pain medication is a significant contributor to this problem. In 2015, there were over 300 million opioid prescriptions written in the US, with [Americans consuming over 80%](https://www.cnbc.com/2016/04/27/americans-consume-almost-all-of-the-global-opioid-supply.html) of the global opioid supply. 
+Opioid abuse is a serious public health crisis that has reached epidemic proportions over the past few years (figure 1). In 2016, there were over 42,249 [opioid-related deaths](https://www.cdc.gov/drugoverdose/data/statedeaths.html) in the United States. This is more than the number of Americans that die from breast cancer every year. Unfortunately, overprescription of pain medication is a significant contributor to this problem. In 2015, there were over 300 million opioid prescriptions written in the US, with [Americans consuming over 80%](https://www.cnbc.com/2016/04/27/americans-consume-almost-all-of-the-global-opioid-supply.html) of the global opioid supply. 
 
 ```{r heatMap, out.width = "100%", echo=FALSE, fig.cap="**Overdose deaths per 100,000 people (1999-2014)**. Haeyoun Park and Matthew Bloch - [The New York Times](https://nyti.ms/2jVUlKb)"}
 include_graphics("https://static01.nyt.com/images/2017/10/26/us/drug-deaths-promo-guide/drug-deaths-promo-guide-superJumbo.jpg?quality=100&auto=webp")
@@ -45,14 +43,14 @@ include_graphics("https://static01.nyt.com/images/2017/10/26/us/drug-deaths-prom
 
 Early identification of patients with opioid addiction or those who may be at increased risk of developing opioid abuse habits could be a crucial step in slowing this epidemic, at least when it comes to prescription pain medication. It is therefore important that we continue to develop novel approaches to identifying those that could be more susceptible to opioid addiction. Historically, physicians have relied primarily on subjective clinical risk factors such as family history, medical history, and various social and environmental factors, but there is increasing interest in utilizing [genetic screening](https://www.sciencedaily.com/releases/2017/12/171213130411.htm) to identify at-risk patients. 
 
-The company that I consulted for was interested in asking whether they could take advantage of their clinical patient data to address this opioid dependence problem. More specifically, they wanted to measure the what contribution, if any, the clinic played in the identification of these patients. Here I used genetic sequencing data and information on the patients' clinics to train a machine-learning model in Python to identify patients diagnosed with opioid dependence. I was primarily interested in quantifying the role that the individual clinics play in making these predictions.
+Ovation was interested in asking whether they could leverage aggregated clinical data to address this opioid dependence problem. More specifically, they wanted to measure what contribution, if any, geographic population structure played in the identification of these patients. In this case, I used patients' clinics as a proxy for patient geography Here I used genetic sequencing data and information on the patients' clinics to train a machine-learning model in Python to identify patients diagnosed with opioid dependence. I was primarily interested in quantifying the role that the individual clinics play in making these predictions.
 
 ## The Data
 
 I was provided with a dataset with information from over 3300 patients, a small random subset from their database. Within this data, I worked with three primary classes of information:
 
 1. Patient diagnosis
-2. Genetic sequencing results
+2. Genotyping results
 3. Name of the clinic where each patient was treated
 
 Included within these categories was information from over 1850 different diagnoses in the form of ICD-10 codes (International Statistical Classification of Diseases and Related Health Problems), 485 genes, and 121 clinics. Now this dataset was wonderfully complex and required quite a bit of initial manipulation and transformation. The first step however was rather straightforward. Since I was only interested in the opioid dependence diagnosis (at least initially), I selected only the ICD-10 codes related to opioid abuse, of which there were only 7, and combined them into a single binary column (positive or negative diagnosis), filtering out the remaining unassociated diseases.
@@ -89,7 +87,7 @@ ggplotly(gene_dist_plot, titleX=TRUE, titleY=TRUE)
 #subplot(gene_dist_plot, gene_coverage_plot, margin = 0.1, titleX = TRUE, titleY = TRUE)
 ```
 
-In addition to uneven coverage, the genetic data was quite complex. Sequencing results for each of the 485 genes were in the form of SNP (single nucleotide polymorphisms) calls, or mutations. These SNPs were identified in several forms; the bases present in the assay (e.g. A/A/, A/G, T, -/C,...), whether a particular SNP was present, or as copy number variants (CNVs - e.g. 0, 1, 2,...). For a given gene, the patients could have one of anywhere between 0 and 8 unique SNP calls (those for which no test was performed were listed as 'none'). To transform this data into a form that could be used for model training, I used one-hot encoding, where each unique SNP call within a given gene becomes its own feature, now encoded as a binary value indicating whether the mutation is present or absent. One-hot encoding the genetic data resulted in an expansion in the dimentionality of me gene feature set (from 485 to more than 1300). In order to reduce some of this dimentionality, I chose to focus only on the features that contained actual genetic mutation information, removing the "none" gene features that only indicated lack of a test being performed. 
+In addition to uneven coverage, the genetic data was quite complex. Sequencing results for each of the 485 genes were in the form of SNP (single nucleotide polymorphisms) calls, or mutations. These SNPs were identified in several forms; the bases present in the assay (e.g. A/A/, A/G, T, -/C,...), whether a particular SNP was present, or as copy number variants (CNVs - e.g. 0, 1, 2,...). For a given gene, the patients could have one of anywhere between 0 and 8 unique SNP calls (those for which no test was performed were listed as 'none'). To transform this data into a form that could be used for model training, I used one-hot encoding, where each unique SNP call within a given gene becomes its own feature, now encoded as a binary value indicating whether the mutation is present or absent. One-hot encoding the genetic data resulted in an expansion in the dimentionality of the gene feature set (from 485 to more than 1300). In order to reduce some of this dimentionality, I chose to focus only on the features that contained actual genetic mutation information, removing the "none" gene features that only indicated lack of a test being performed. 
 
 I next wanted to look at the distribution of patients with a positive opioid abuse diagnosis across the 121 clinics within the dataset. Out of the 121 clinics included, only 7 had at least 1 patient with a positive opioid abuse diagnosis. The ratio of positive to total patients within these 7 clincs varied significantly, from less than 1% to 87% (figure 1). In addition, the total number of positive opioid patients was only 175 compared to 3148 patients identified as negative for opioid abuse. This result indicated that the dataset was highly imbalanced; something that I would need to account for before implementing any sort of machine learning algorithm. 
 
@@ -291,7 +289,7 @@ These modeling efforts reveal a potentially powerful tool that could aid in iden
 
 In performing my analysis, I was also interested in looking at the overlapping diagnoses that accompanied the positive opioid abuse diagnosis. I found that there were 12 diagnoses within this dataset that correlated with opioid abuse (figure 7). In the future, these features could be incorporated into the model to improve how we identify the at-risk patients. 
 
-```{r overlapping-diseases, fig.cap="Patient counts for diseases that occurred concurrently with the opioid dependence diagnosis", echo=FALSE, message=FALSE}
+```{r overlapping-diseases, fig.cap="Patient counts for diseases that occurred concurrently with the opioid dependence diagnosis", echo=FALSE, message=FALSE, fig.height=5}
 t1 <- overlap %>% filter(multi_diags==2)
 
 disease_labs <- c(
@@ -313,12 +311,12 @@ Filter(function(u) any(grepl('1',u)), overlap) %>% select(-opioid_abuse) %>% gat
   group_by(disease) %>% filter(diag==1) %>% count() %>% filter(n>4) %>% 
   ggplot(aes(x=disease, y=n)) + 
   geom_bar(stat='identity', fill = '#56B4E9') + 
-  scale_y_continuous(expand=c(0,0), limits = c(0,100)) + 
+  scale_y_continuous(expand=c(0,0)) + 
   scale_x_discrete(labels=disease_labs) +
   labs(y = 'Number of patients') +
   coord_flip() +
   theme(axis.title.y = element_blank(),
-        axis.title.x = element_text(size=18),
+        axis.title.x = element_text(size=20),
         axis.text.x = element_text(size=12)) -> overlap_plot
 overlap_plot
 ```
